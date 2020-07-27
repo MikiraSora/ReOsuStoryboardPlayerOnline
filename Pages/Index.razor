@@ -1,47 +1,5 @@
 ﻿@page "/"
-@using Microsoft.AspNetCore.WebUtilities
-@using ReOsuStoryboardPlayerOnline.IO
-@using System.IO.Compression
-@using System.IO
-@using ReOsuStoryboardPlayerOnline.IO.Utils
-@using ReOsuStoryboardPlayerOnline.IO.LocalImpl
-@inject NavigationManager NavigationManager
-@inject HttpClient Client
+@inherits IndexComponent
 
-<StoryboardPlayerWindow @ref="StoryboardWindow"></StoryboardPlayerWindow>
-
-@code{
-    public StoryboardPlayerWindow StoryboardWindow { get; set; }
-
-    public string Text { get; set; }
-
-    public IDirectoryReader ResourceReader { get; set; }
-
-    protected async override Task OnAfterRenderAsync(bool isFirstRender)
-    {
-        StoryboardWindow.Play();
-
-        return;
-
-        var queryString = QueryHelpers.ParseQuery(new Uri(NavigationManager.Uri).Query);
-
-        if (queryString.TryGetValue("sid", out var beatmapSetId))
-            ResourceReader = await BeatmapHelper.LoadNetworkResources(int.Parse(beatmapSetId.ToString()));
-        else
-            //尝试发起本地上传文件请求
-            ResourceReader = await LoadLocalResources();
-
-        if (ResourceReader is null)
-        {
-            //错误处理
-            return;
-        }
-
-        //StoryboardWindow.Play(ResourceReader);
-    }
-
-    private async Task<IDirectoryReader> LoadLocalResources()
-    {
-        return null;
-    }
-}
+<StoryboardPlayerWindow Player="@Player" Width="800" Height="600" @ref="StoryboardWindow"></StoryboardPlayerWindow>
+<input style="display:none" id="dirUploader" type="file" directory/>

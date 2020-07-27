@@ -2,6 +2,8 @@
 using Blazor.Extensions.Canvas;
 using Blazor.Extensions.Canvas.WebGL;
 using Microsoft.AspNetCore.Components;
+using ReOsuStoryboardPlayer.Core.Kernel;
+using ReOsuStoryboardPlayerOnline.MusicPlayer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +16,17 @@ namespace ReOsuStoryboardPlayerOnline.Shared
     {
         public BECanvasComponent RefCanvas { get; set; }
 
+        [Parameter]
+        public long Width { get; set; }
+
+        [Parameter]
+        public long Height { get; set; }
+
+        [Parameter]
+        public IMusicPlayer Player { get; set; }
+
         private WebGLContext GLContext { get; set; }
+        private StoryboardUpdater StoryboardUpdater { get; set; }
 
         private const string VS_SOURCE = "attribute vec3 aPos;" +
                                          "attribute vec3 aColor;" +
@@ -31,6 +43,7 @@ namespace ReOsuStoryboardPlayerOnline.Shared
                                          "void main() {" +
                                             "gl_FragColor = vec4(vColor, 1.0);" +
                                          "}";
+        private CancellationTokenSource currentLoopCancelSource;
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
@@ -104,29 +117,45 @@ namespace ReOsuStoryboardPlayerOnline.Shared
             return shader;
         }
 
+        public void RunInstance(StoryboardUpdater updater)
+        {
+            StoryboardUpdater = updater;
+        }
+
         public void Play()
         {
             Console.WriteLine("Play!");
-            Task.Run(onLoop);
+            currentLoopCancelSource = new CancellationTokenSource();
+            Player.Play();
+            Loop(currentLoopCancelSource.Token);
         }
 
-        private async void onLoop()
+        private async void Loop(CancellationToken token)
         {
-            while (true)
+            while (!token.IsCancellationRequested)
             {
-                onUpdate();
-                onRender();
+                if (StoryboardUpdater != null)
+                {
+                    OnUpdate();
+                    OnRender();
+                }
+
                 await Task.Yield();
             }
         }
 
-        private void onUpdate()
+        private void OnUpdate()
         {
-
+            var currentTime = Player.GetCurrentTime();
+            StoryboardUpdater.Update(currentTime);
         }
-        private void onRender()
-        {
 
+        private void OnRender()
+        {
+            foreach (var storyboardObject in StoryboardUpdater.UpdatingStoryboardObjects)
+            {
+                //todo 渲染物件
+            }
         }
     }
 }

@@ -13,6 +13,8 @@ namespace ReOsuStoryboardPlayerOnline.IO.Utils
     {
         public static async Task<IDirectoryReader> LoadNetworkResources(int sid)
         {
+            Console.WriteLine($"call LoadNetworkResources({sid})");
+
             var first = sid / 10000;
             var second = sid % 10000;
             var url = $"https://cmcc.sayobot.cn:25225/beatmaps/{first}/{second}/novideo";
