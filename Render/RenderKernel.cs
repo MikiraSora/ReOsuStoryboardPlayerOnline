@@ -11,12 +11,16 @@ namespace ReOsuStoryboardPlayerOnline.Render
     public static class RenderKernel
     {
         private static bool additiveTrigger = false;
+        private static bool init = false;
 
         private static DefaultShader shader = new DefaultShader();
 
         public static void Init(WebGLContext gl)
         {
+            //todo 对渲染进行初始化，比如说初始化着色器，顶点等。
             shader.Build(gl);
+
+            init = true;
         }
 
         public static async void BeforeDraw(WebGLContext gl)
@@ -35,6 +39,9 @@ namespace ReOsuStoryboardPlayerOnline.Render
 
         public static void Render(WebGLContext gl, List<StoryboardObject> updatingStoryboardObjects)
         {
+            if (!init)
+                return;
+
             BeforeDraw(gl);
 
             foreach (var obj in updatingStoryboardObjects)
@@ -42,13 +49,10 @@ namespace ReOsuStoryboardPlayerOnline.Render
                 if (!obj.IsVisible)
                     continue;
 
-                //todo 多实例渲染?
                 DrawObject(gl,obj);
             }
 
-            //reset
             ChangeAdditiveStatus(gl,false);
-
             AfterDraw(gl);
         }
 
@@ -64,6 +68,7 @@ namespace ReOsuStoryboardPlayerOnline.Render
         {
             ChangeAdditiveStatus(gl,obj.IsAdditive);
 
+            //todo 实质对物件进行渲染,一次drawcall
         }
     }
 }
