@@ -4,6 +4,7 @@ using Blazor.Extensions.Canvas.WebGL;
 using Microsoft.AspNetCore.Components;
 using ReOsuStoryboardPlayer.Core.Kernel;
 using ReOsuStoryboardPlayerOnline.MusicPlayer;
+using ReOsuStoryboardPlayerOnline.Render;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -51,6 +52,8 @@ namespace ReOsuStoryboardPlayerOnline.Shared
             {
                 PowerPreference = WebGLContextAttributes.POWER_PREFERENCE_HIGH_PERFORMANCE
             });
+
+            //todo
 
             await this.GLContext.ClearColorAsync(0, 0, 0, 1);
             await this.GLContext.ClearAsync(BufferBits.COLOR_BUFFER_BIT);
@@ -152,10 +155,7 @@ namespace ReOsuStoryboardPlayerOnline.Shared
 
         private void OnRender()
         {
-            foreach (var storyboardObject in StoryboardUpdater.UpdatingStoryboardObjects)
-            {
-                //todo 渲染物件
-            }
+            RenderKernel.Render(GLContext, StoryboardUpdater.UpdatingStoryboardObjects);
         }
     }
 }
