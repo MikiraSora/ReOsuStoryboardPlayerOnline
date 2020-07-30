@@ -3,6 +3,7 @@ using Blazor.Extensions.Canvas;
 using Blazor.Extensions.Canvas.WebGL;
 using Microsoft.AspNetCore.Components;
 using ReOsuStoryboardPlayer.Core.Kernel;
+using ReOsuStoryboardPlayerOnline.IO;
 using ReOsuStoryboardPlayerOnline.MusicPlayer;
 using ReOsuStoryboardPlayerOnline.Render;
 using System;
@@ -29,26 +30,11 @@ namespace ReOsuStoryboardPlayerOnline.Shared
         private WebGLContext GLContext { get; set; }
         private StoryboardUpdater StoryboardUpdater { get; set; }
 
-        private const string VS_SOURCE = "attribute vec3 aPos;" +
-                                         "attribute vec3 aColor;" +
-                                         "varying vec3 vColor;" +
-
-                                         "void main() {" +
-                                            "gl_Position = vec4(aPos, 1.0);" +
-                                            "vColor = aColor;" +
-                                         "}";
-
-        private const string FS_SOURCE = "precision mediump float;" +
-                                         "varying vec3 vColor;" +
-
-                                         "void main() {" +
-                                            "gl_FragColor = vec4(vColor, 1.0);" +
-                                         "}";
         private CancellationTokenSource currentLoopCancelSource;
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
-            GLContext = await this.RefCanvas.CreateWebGLAsync(new WebGLContextAttributes
+            GLContext = await RefCanvas.CreateWebGLAsync(new WebGLContextAttributes
             {
                 PowerPreference = WebGLContextAttributes.POWER_PREFERENCE_HIGH_PERFORMANCE
             });
@@ -83,7 +69,7 @@ namespace ReOsuStoryboardPlayerOnline.Shared
             */
         }
 
-        public void RunInstance(StoryboardUpdater updater)
+        public void RunInstance(StoryboardUpdater updater,IDirectoryReader reader)
         {
             StoryboardUpdater = updater;
         }

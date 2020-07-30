@@ -8,6 +8,12 @@ namespace ReOsuStoryboardPlayerOnline.Render
 {
     public class DefaultShader
     {
+        private WebGLUniformLocation ViewProjectionLocation;
+        private WebGLUniformLocation AnchorLocation;
+        private WebGLUniformLocation ColorLocation;
+        private WebGLUniformLocation FilpLocation;
+        private WebGLUniformLocation ModelLocation;
+
         public DefaultShader()
         {
             VertexProgramString = @"
@@ -16,14 +22,13 @@ namespace ReOsuStoryboardPlayerOnline.Render
                 out vec2 varying_texPos;
 
                 uniform mat4 ViewProjection;
+                uniform vec2 in_anchor;
+                uniform vec4 in_color;
+                uniform vec2 in_flip;
+                uniform mat3 in_model;
 
                 layout(location=0) in vec2 in_texPos;
                 layout(location=1) in vec2 in_pos;
-
-                layout(location=2) in vec2 in_anchor;
-                layout(location=3) in vec4 in_color;
-                layout(location=4) in vec2 in_flip;
-                layout(location=5) in mat3x2 in_model;
 
                 void main(){
                     vec2 v = in_model*vec3(in_pos*in_flip-in_anchor,1.0);
@@ -54,9 +59,15 @@ namespace ReOsuStoryboardPlayerOnline.Render
 
         public WebGLProgram ShaderProgram { get; private set; }
 
-        public void Build(WebGLContext gl)
+        public async void Build(WebGLContext gl)
         {
             InitProgramAsync(gl, VertexProgramString, FragmentProgramString);
+
+            ViewProjectionLocation = await gl.GetUniformLocationAsync(ShaderProgram, "ViewProjection");
+            AnchorLocation = await gl.GetUniformLocationAsync(ShaderProgram, "in_anchor");
+            ColorLocation = await gl.GetUniformLocationAsync(ShaderProgram, "in_color");
+            FilpLocation = await gl.GetUniformLocationAsync(ShaderProgram, "in_flip");
+            ModelLocation = await gl.GetUniformLocationAsync(ShaderProgram, "in_model");
         }
 
         private async void InitProgramAsync(WebGLContext gl, string vsSource, string fsSource)
@@ -97,5 +108,28 @@ namespace ReOsuStoryboardPlayerOnline.Render
 
             return shader;
         }
+
+        public async void UseProgramAsync(WebGLContext gl)
+        {
+            await gl.UseProgramAsync(ShaderProgram);
+        }
+
+        public async void UpdateViewProjection(WebGLContext gl,bool transpose,float[] matrixArray) => 
+            await gl.UniformMatrixAsync(ViewProjectionLocation, transpose, matrixArray);
+
+        public async void UpdateModel(WebGLContext gl, bool transpose, float[] matrixArray) =>
+            await gl.UniformMatrixAsync(ModelLocation, transpose, matrixArray);
+
+        public async void UpdateAnchor(WebGLContext gl,params float[] matrixArray) =>
+            await gl.UniformAsync(AnchorLocation, matrixArray);
+
+        public async void UpdateColor(WebGLContext gl, params float[] matrixArray) =>
+            await gl.UniformAsync(ColorLocation, matrixArray);
+
+        public async void UpdateFlip(WebGLContext gl, params float[] matrixArray) =>
+            await gl.UniformAsync(FilpLocation, matrixArray);
+
+        public async void UpdateTexture(WebGLContext gl, WebGLTexture texture) =>
+            await gl.BindTextureAsync(TextureType.TEXTURE_2D, texture);
     }
 }

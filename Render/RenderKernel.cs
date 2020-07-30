@@ -1,9 +1,13 @@
 ﻿using Blazor.Extensions.Canvas.WebGL;
+using OpenToolkit.Mathematics;
 using ReOsuStoryboardPlayer.Core.Base;
+using ReOsuStoryboardPlayer.Core.PrimitiveValue;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ReOsuStoryboardPlayerOnline.Render
@@ -12,23 +16,74 @@ namespace ReOsuStoryboardPlayerOnline.Render
     {
         private static bool additiveTrigger = false;
         private static bool init = false;
-
         private static DefaultShader shader = new DefaultShader();
+
+        public const float SB_WIDTH = 640f, SB_WIDE_WIDTH = SB_WIDTH + 2 * 107, SB_HEIGHT = 480f;
+
+        private static WebGLBuffer vertexBuffer;
+        private static WebGLBuffer texBuffer;
+
+        public static Matrix4 CameraViewMatrix { get; set; } = Matrix4.Identity;
+        public static Matrix4 ProjectionMatrix { get; set; } = Matrix4.Identity;
 
         public static void Init(WebGLContext gl)
         {
             //todo 对渲染进行初始化，比如说初始化着色器，顶点等。
             shader.Build(gl);
 
+            InitStaticBuffer(gl);
+            //InitDymaticBuffer(gl);
+
             init = true;
         }
 
-        public static async void BeforeDraw(WebGLContext gl)
+        private static async void InitStaticBuffer(WebGLContext gl)
         {
-            var program = shader.ShaderProgram;
-            await gl.UseProgramAsync(program);
+            vertexBuffer = await gl.CreateBufferAsync();
+            await gl.BindBufferAsync(BufferType.ARRAY_BUFFER, vertexBuffer);
+            {
+                var vertexArrayDef = new[]{
+                -0.5f, 0.5f,
+                 0.5f, 0.5f,
+                 0.5f, -0.5f,
+                -0.5f, -0.5f,};
 
-            //todo
+                await gl.BufferDataAsync(BufferType.ARRAY_BUFFER, vertexArrayDef, BufferUsageHint.STATIC_DRAW);
+                await gl.EnableVertexAttribArrayAsync(1);
+                await gl.VertexAttribPointerAsync(1, 2, DataType.FLOAT, false, sizeof(float) * 2, 0);
+            }
+
+            texBuffer = await gl.CreateBufferAsync();
+            await gl.BindBufferAsync(BufferType.ARRAY_BUFFER, texBuffer);
+            {
+                var texArrayDef = new[]
+                {
+                     0,0,
+                     1,0,
+                     1,1,
+                     0,1
+                };
+
+                await gl.BufferDataAsync(BufferType.ARRAY_BUFFER, texArrayDef, BufferUsageHint.STATIC_DRAW);
+                await gl.EnableVertexAttribArrayAsync(0);
+                await gl.VertexAttribPointerAsync(0, 2, DataType.FLOAT, false, sizeof(float) * 2, 0);
+            }
+        }
+
+        private static float[] vpBuffer = new float[16];
+
+        public static unsafe void BeforeDraw(WebGLContext gl)
+        {
+            shader.UseProgramAsync(gl);
+
+            var VP = CameraViewMatrix * ProjectionMatrix;
+
+            fixed (float* ptr = &vpBuffer[0])
+            {
+                Unsafe.CopyBlock(ptr, &VP.Row0.X, 16 * sizeof(float));
+            }
+
+            shader.UpdateViewProjection(gl, false, vpBuffer);
         }
 
         public static async void AfterDraw(WebGLContext gl)
@@ -64,11 +119,52 @@ namespace ReOsuStoryboardPlayerOnline.Render
             await gl.BlendFuncAsync(BlendingMode.SRC_ALPHA, additiveTrigger ? BlendingMode.ONE : BlendingMode.ONE_MINUS_SRC_ALPHA);
         }
 
+        private static float[] martrix3Buffer = new float[3 * 3];
+
         public static async void DrawObject(WebGLContext gl,StoryboardObject obj)
         {
             ChangeAdditiveStatus(gl,obj.IsAdditive);
 
-            //todo 实质对物件进行渲染,一次drawcall
+            var is_xflip = Math.Sign(obj.Scale.X);
+            var is_yflip = Math.Sign(obj.Scale.Y);
+
+            Vector bound = new Vector();
+
+            //adjust scale transform which value is negative
+            var horizon_flip = obj.IsHorizonFlip | (is_xflip < 0);
+            var vertical_flip = obj.IsHorizonFlip | (is_yflip < 0);
+            float scalex = is_xflip * obj.Scale.X * bound.X;
+            float scaley = is_yflip * obj.Scale.Y * bound.Y;
+
+            shader.UpdateColor(gl, obj.Color.X, obj.Color.Y, obj.Color.Z, obj.Color.W);
+            shader.UpdateFlip(gl, horizon_flip ? -1 : 1, vertical_flip ? -1 : 1);
+
+            //anchor
+            shader.UpdateAnchor(gl, obj.OriginOffset.X, obj.OriginOffset.Y);
+
+            //Create ModelMatrix
+            Matrix3 model = Matrix3.Zero;
+            float cosa = (float)Math.Cos(obj.Rotate);
+            float sina = (float)Math.Sin(obj.Rotate);
+            model.Row0.X = cosa * scalex;
+            model.Row0.Y = -sina * scalex;
+            model.Row1.X = sina * scaley;
+            model.Row1.Y = cosa * scaley;
+
+            model.Row2.X = obj.Postion.X - SB_WIDTH / 2f;
+            model.Row2.Y = -obj.Postion.Y + SB_HEIGHT / 2f;
+
+            unsafe 
+            { 
+                fixed (float* ptr = &martrix3Buffer[0])
+                {
+                    Unsafe.CopyBlock(ptr, &model.Row0.X, 9 * sizeof(float));
+                }
+            }
+
+            shader.UpdateModel(gl, false, martrix3Buffer);
+
+            await gl.DrawArraysAsync(Primitive.TRINAGLE_STRIP, 0, 4);
         }
     }
 }
