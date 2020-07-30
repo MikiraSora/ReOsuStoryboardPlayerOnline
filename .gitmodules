@@ -1,0 +1,3 @@
+[submodule "Dependencies/Canvas"]
+	path = Dependencies/Canvas
+	url = https://github.com/BlazorExtensions/Canvas/
