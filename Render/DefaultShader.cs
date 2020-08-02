@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace ReOsuStoryboardPlayerOnline.Render
@@ -30,20 +31,21 @@ namespace ReOsuStoryboardPlayerOnline.Render
                 attribute vec2 in_pos;
 
                 void main(){
-                    vec2 v = in_model*vec3(in_pos*in_flip-in_anchor,1.0);
+                    vec3 v = in_model*vec3(in_pos*in_flip-in_anchor,1.0);
 	                gl_Position=ViewProjection*vec4(v.x,v.y,0.0,1.0);
 	                varying_color=in_color;
 	                varying_texPos=in_texPos;
                 }
                 ";
             FragmentProgramString = @"
+                precision mediump float;
                 uniform sampler2D diffuse;
 
-                varying vec4 varying_color;
-                varying vec2 varying_texPos;
+                varying mediump vec4 varying_color;
+                varying mediump vec2 varying_texPos;
 
                 void main(){
-	                vec4 texColor = texture(diffuse,varying_texPos);
+	                vec4 texColor = texture2D(diffuse,varying_texPos);
 	                gl_FragColor = (varying_color*texColor);
                 }
                 ";
@@ -59,7 +61,7 @@ namespace ReOsuStoryboardPlayerOnline.Render
 
         public async void Build(WebGLContext gl)
         {
-            InitProgramAsync(gl, VertexProgramString, FragmentProgramString);
+            await InitProgramAsync(gl, VertexProgramString, FragmentProgramString);
 
             ViewProjectionLocation = await gl.GetUniformLocationAsync(ShaderProgram, "ViewProjection");
             AnchorLocation = await gl.GetUniformLocationAsync(ShaderProgram, "in_anchor");
@@ -71,7 +73,7 @@ namespace ReOsuStoryboardPlayerOnline.Render
             TexturePositionAttributeLocaltion = (uint)await gl.GetAttribLocationAsync(ShaderProgram, "in_texPos");
         }
 
-        private async void InitProgramAsync(WebGLContext gl, string vsSource, string fsSource)
+        private async Task InitProgramAsync(WebGLContext gl, string vsSource, string fsSource)
         {
             var vertexShader = await LoadShaderAsync(gl, ShaderType.VERTEX_SHADER, vsSource);
             var fragmentShader = await LoadShaderAsync(gl, ShaderType.FRAGMENT_SHADER, fsSource);
@@ -90,6 +92,7 @@ namespace ReOsuStoryboardPlayerOnline.Render
                 throw new Exception("An error occured while linking the program: " + info);
             }
 
+            Console.WriteLine($"shader program : id = {program.Id} , type = {program.WebGLType}");
             ShaderProgram = program;
         }
 
@@ -104,7 +107,7 @@ namespace ReOsuStoryboardPlayerOnline.Render
             {
                 string info = await gl.GetShaderInfoLogAsync(shader);
                 await gl.DeleteShaderAsync(shader);
-                throw new Exception("An error occured while compiling the shader: " + info);
+                throw new Exception($"An error occured while compiling the {type} shader: " + info);
             }
 
             return shader;
