@@ -10,6 +10,7 @@ using ReOsuStoryboardPlayerOnline.IO;
 using ReOsuStoryboardPlayerOnline.IO.Utils;
 using ReOsuStoryboardPlayerOnline.MusicPlayer;
 using ReOsuStoryboardPlayerOnline.Shared;
+using ReOsuStoryboardPlayerOnline.Storyboard;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -55,24 +56,17 @@ namespace ReOsuStoryboardPlayerOnline.Pages
 
             Console.WriteLine("Start to select a .osb file and a .osu file (if it exist.)");
             var osbFilePath = ResourceReader.EnumeratePath("*.osb").FirstOrDefault();
-           
+            var osuFilePath = ResourceReader.EnumeratePath("*.osu").FirstOrDefault();
 
-            var objects = ParseStoryboardFile(ResourceReader.ReadFile(osbFilePath));
-            var instance = new StoryboardUpdater(objects);
+            Console.WriteLine("osu file : " + osuFilePath);
+            Console.WriteLine("osb file : " + osbFilePath);
 
-            Console.WriteLine(objects.Count);
+            var updater = StoryboardHelper.ParseStoryboard(ResourceReader.ReadFile(osuFilePath), ResourceReader.ReadFile(osbFilePath));
 
-            StoryboardWindow.RunInstance(instance);
+            Console.WriteLine(updater.StoryboardObjectList.Count);
+
+            StoryboardWindow.PrepareRenderResource(updater, ResourceReader);
             StoryboardWindow.Play();
-        }
-
-        static List<StoryboardObject> ParseStoryboardFile(Stream fileStream)
-        {
-            using var osbFileReader = new ReOsuStoryboardPlayer.Core.Parser.Stream.OsuFileReader(fileStream);
-            var variables = new VariableCollection(new VariableReader(osbFileReader).EnumValues());
-            StoryboardReader sbReader = new StoryboardReader(new EventReader(osbFileReader, variables));
-
-            return sbReader.EnumValues().ToList();
         }
     }
 }

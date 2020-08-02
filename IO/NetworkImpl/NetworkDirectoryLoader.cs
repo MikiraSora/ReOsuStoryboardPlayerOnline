@@ -16,6 +16,7 @@ namespace ReOsuStoryboardPlayerOnline.IO.NetworkImpl
                 
         public void AddFile(string path,byte[] content)
         {
+            path = path.Replace("/", "\\").ToLower();
             files[path] = content;
         }
     }

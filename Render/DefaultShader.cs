@@ -17,9 +17,8 @@ namespace ReOsuStoryboardPlayerOnline.Render
         public DefaultShader()
         {
             VertexProgramString = @"
-                #version 330
-                out vec4 varying_color;
-                out vec2 varying_texPos;
+                varying vec4 varying_color;
+                varying vec2 varying_texPos;
 
                 uniform mat4 ViewProjection;
                 uniform vec2 in_anchor;
@@ -27,8 +26,8 @@ namespace ReOsuStoryboardPlayerOnline.Render
                 uniform vec2 in_flip;
                 uniform mat3 in_model;
 
-                layout(location=0) in vec2 in_texPos;
-                layout(location=1) in vec2 in_pos;
+                attribute vec2 in_texPos;
+                attribute vec2 in_pos;
 
                 void main(){
                     vec2 v = in_model*vec3(in_pos*in_flip-in_anchor,1.0);
@@ -38,24 +37,23 @@ namespace ReOsuStoryboardPlayerOnline.Render
                 }
                 ";
             FragmentProgramString = @"
-                #version 330
-
                 uniform sampler2D diffuse;
 
-                in vec4 varying_color;
-                in vec2 varying_texPos;
-
-                out vec4 out_color;
+                varying vec4 varying_color;
+                varying vec2 varying_texPos;
 
                 void main(){
-	                vec4 texColor=texture(diffuse,varying_texPos);
-	                out_color=(varying_color*texColor);
+	                vec4 texColor = texture(diffuse,varying_texPos);
+	                gl_FragColor = (varying_color*texColor);
                 }
                 ";
         }
 
-        public string VertexProgramString { get; }
-        public string FragmentProgramString { get; }
+        public string VertexProgramString { get; private set; }
+        public string FragmentProgramString { get; private set; }
+
+        public uint TexturePositionAttributeLocaltion { get; private set; }
+        public uint PositionAttributeLocaltion { get; private set; }
 
         public WebGLProgram ShaderProgram { get; private set; }
 
@@ -68,6 +66,9 @@ namespace ReOsuStoryboardPlayerOnline.Render
             ColorLocation = await gl.GetUniformLocationAsync(ShaderProgram, "in_color");
             FilpLocation = await gl.GetUniformLocationAsync(ShaderProgram, "in_flip");
             ModelLocation = await gl.GetUniformLocationAsync(ShaderProgram, "in_model");
+
+            PositionAttributeLocaltion = (uint)await gl.GetAttribLocationAsync(ShaderProgram, "in_pos");
+            TexturePositionAttributeLocaltion = (uint)await gl.GetAttribLocationAsync(ShaderProgram, "in_texPos");
         }
 
         private async void InitProgramAsync(WebGLContext gl, string vsSource, string fsSource)

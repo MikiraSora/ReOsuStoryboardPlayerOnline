@@ -10,6 +10,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="TestConsle\**" />
+    <Content Remove="TestConsle\**" />
+    <EmbeddedResource Remove="TestConsle\**" />
+    <None Remove="TestConsle\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Blazor.Extensions.Canvas" Version="1.1.0-preview1" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="3.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Build" Version="3.2.0" PrivateAssets="all" />
@@ -17,11 +24,8 @@
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.2.0" />
     <PackageReference Include="OpenToolkit.Mathematics" Version="4.0.0-pre9.2" />
     <PackageReference Include="ReOsuStoryboardPlayer.Core" Version="1.5.13" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-rc0003" />
     <PackageReference Include="System.Net.Http.Json" Version="3.2.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Storyboard\" />
   </ItemGroup>
 
 </Project>

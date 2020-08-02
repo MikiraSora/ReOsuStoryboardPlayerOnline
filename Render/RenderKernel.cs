@@ -22,17 +22,19 @@ namespace ReOsuStoryboardPlayerOnline.Render
 
         private static WebGLBuffer vertexBuffer;
         private static WebGLBuffer texBuffer;
+        private static Dictionary<string, TextureResource> textureResourceMap;
 
         public static Matrix4 CameraViewMatrix { get; set; } = Matrix4.Identity;
         public static Matrix4 ProjectionMatrix { get; set; } = Matrix4.Identity;
 
-        public static void Init(WebGLContext gl)
+        public static void Init(WebGLContext gl,int viewWidth,int viewHeight)
         {
+            ProjectionMatrix = Matrix4.Identity * Matrix4.CreateOrthographic(viewWidth, viewHeight, -1, 1);
+
             //todo 对渲染进行初始化，比如说初始化着色器，顶点等。
             shader.Build(gl);
 
             InitStaticBuffer(gl);
-            //InitDymaticBuffer(gl);
 
             init = true;
         }
@@ -49,8 +51,8 @@ namespace ReOsuStoryboardPlayerOnline.Render
                 -0.5f, -0.5f,};
 
                 await gl.BufferDataAsync(BufferType.ARRAY_BUFFER, vertexArrayDef, BufferUsageHint.STATIC_DRAW);
-                await gl.EnableVertexAttribArrayAsync(1);
-                await gl.VertexAttribPointerAsync(1, 2, DataType.FLOAT, false, sizeof(float) * 2, 0);
+                await gl.EnableVertexAttribArrayAsync(shader.PositionAttributeLocaltion);
+                await gl.VertexAttribPointerAsync(shader.PositionAttributeLocaltion, 2, DataType.FLOAT, false, sizeof(float) * 2, 0);
             }
 
             texBuffer = await gl.CreateBufferAsync();
@@ -65,8 +67,8 @@ namespace ReOsuStoryboardPlayerOnline.Render
                 };
 
                 await gl.BufferDataAsync(BufferType.ARRAY_BUFFER, texArrayDef, BufferUsageHint.STATIC_DRAW);
-                await gl.EnableVertexAttribArrayAsync(0);
-                await gl.VertexAttribPointerAsync(0, 2, DataType.FLOAT, false, sizeof(float) * 2, 0);
+                await gl.EnableVertexAttribArrayAsync(shader.TexturePositionAttributeLocaltion);
+                await gl.VertexAttribPointerAsync(shader.TexturePositionAttributeLocaltion, 2, DataType.FLOAT, false, sizeof(float) * 2, 0);
             }
         }
 
@@ -90,6 +92,15 @@ namespace ReOsuStoryboardPlayerOnline.Render
         {
             var error = await gl.GetErrorAsync();
             Debug.Assert(error == Error.NO_ERROR,"DEBUG : OpenGL got error after rendering. ERROR = " + error);
+        }
+
+        public static async void ApplyRenderResource(WebGLContext gl,Dictionary<string, TextureResource> textureResourceMap)
+        {
+            if (RenderKernel.textureResourceMap != null)
+                foreach (var resource in RenderKernel.textureResourceMap.Values.Where(x => x.IsValid))
+                    await gl.DeleteTextureAsync(resource.Texture);
+
+            RenderKernel.textureResourceMap = textureResourceMap;
         }
 
         public static void Render(WebGLContext gl, List<StoryboardObject> updatingStoryboardObjects)
@@ -121,20 +132,21 @@ namespace ReOsuStoryboardPlayerOnline.Render
 
         private static float[] martrix3Buffer = new float[3 * 3];
 
-        public static async void DrawObject(WebGLContext gl,StoryboardObject obj)
+        public static async void DrawObject(WebGLContext gl, StoryboardObject obj)
         {
-            ChangeAdditiveStatus(gl,obj.IsAdditive);
+            if (!textureResourceMap.TryGetValue(obj.ImageFilePath, out var textureResource))
+                return;
+
+            ChangeAdditiveStatus(gl, obj.IsAdditive);
 
             var is_xflip = Math.Sign(obj.Scale.X);
             var is_yflip = Math.Sign(obj.Scale.Y);
 
-            Vector bound = new Vector();
-
             //adjust scale transform which value is negative
             var horizon_flip = obj.IsHorizonFlip | (is_xflip < 0);
             var vertical_flip = obj.IsHorizonFlip | (is_yflip < 0);
-            float scalex = is_xflip * obj.Scale.X * bound.X;
-            float scaley = is_yflip * obj.Scale.Y * bound.Y;
+            float scalex = is_xflip * obj.Scale.X * textureResource.Size.Width;
+            float scaley = is_yflip * obj.Scale.Y * textureResource.Size.Height;
 
             shader.UpdateColor(gl, obj.Color.X, obj.Color.Y, obj.Color.Z, obj.Color.W);
             shader.UpdateFlip(gl, horizon_flip ? -1 : 1, vertical_flip ? -1 : 1);
@@ -154,8 +166,8 @@ namespace ReOsuStoryboardPlayerOnline.Render
             model.Row2.X = obj.Postion.X - SB_WIDTH / 2f;
             model.Row2.Y = -obj.Postion.Y + SB_HEIGHT / 2f;
 
-            unsafe 
-            { 
+            unsafe
+            {
                 fixed (float* ptr = &martrix3Buffer[0])
                 {
                     Unsafe.CopyBlock(ptr, &model.Row0.X, 9 * sizeof(float));
@@ -164,7 +176,8 @@ namespace ReOsuStoryboardPlayerOnline.Render
 
             shader.UpdateModel(gl, false, martrix3Buffer);
 
-            await gl.DrawArraysAsync(Primitive.TRINAGLE_STRIP, 0, 4);
+            shader.UpdateTexture(gl, textureResource.Texture);
+            await gl.DrawArraysAsync(Primitive.TRIANGLE_FAN, 0, 4);
         }
     }
 }
