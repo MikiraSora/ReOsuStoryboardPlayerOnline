@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace ReOsuStoryboardPlayerOnline.IO
 {
-    public interface IDirectoryLoader
+    public interface IDirectoryLoader : IDisposable
     {
         IDirectoryReader GetReader();
     }

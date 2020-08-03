@@ -63,10 +63,15 @@ namespace ReOsuStoryboardPlayerOnline.Pages
 
             var updater = StoryboardHelper.ParseStoryboard(ResourceReader.ReadFile(osuFilePath), ResourceReader.ReadFile(osbFilePath));
 
-            Console.WriteLine(updater.StoryboardObjectList.Count);
+            Console.WriteLine($"Storyboard objects count : {updater.StoryboardObjectList.Count}");
 
-            StoryboardWindow.PrepareRenderResource(updater, ResourceReader);
+            Console.WriteLine($"Start load render resource...");
+            await StoryboardWindow.PrepareRenderResource(updater, ResourceReader);
+            Console.WriteLine($"Render resource loading DONE!");
+
             StoryboardWindow.Play();
+
+            Console.WriteLine($"OnAfterRenderAsync() end");
         }
     }
 }

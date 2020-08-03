@@ -53,7 +53,7 @@ namespace ReOsuStoryboardPlayerOnline.Shared
             RenderKernel.Init(glContext,800,600);
         }
 
-        public async void PrepareRenderResource(StoryboardUpdater updater,IDirectoryReader reader)
+        public async Task PrepareRenderResource(StoryboardUpdater updater,IDirectoryReader reader)
         {
             storyboardUpdater = updater;
 
@@ -90,6 +90,13 @@ namespace ReOsuStoryboardPlayerOnline.Shared
                         break;
                 }
             }
+
+            Console.WriteLine($"--------textureResourceMap--------");
+            foreach (var pair in textureResourceMap)
+            {
+                Console.WriteLine($"{pair.Key}  \b  {pair.Value.Texture.Id}");
+            }
+            Console.WriteLine($"----------------------------------");
 
             RenderKernel.ApplyRenderResource(glContext, textureResourceMap);
 
@@ -144,6 +151,8 @@ namespace ReOsuStoryboardPlayerOnline.Shared
 
                     await glContext.BindTextureAsync(TextureType.TEXTURE_2D, texture);
 
+                    Console.WriteLine($"load image path:{file_path} , size = ({image.Width},{image.Height})");
+
                     await glContext.TexParameterAsync(TextureType.TEXTURE_2D, TextureParameter.TEXTURE_MIN_FILTER, 9729);
                     await glContext.TexParameterAsync(TextureType.TEXTURE_2D, TextureParameter.TEXTURE_MAG_FILTER, 9729);
                     await glContext.TexParameterAsync(TextureType.TEXTURE_2D, TextureParameter.TEXTURE_WRAP_S, 33071);
@@ -190,6 +199,7 @@ namespace ReOsuStoryboardPlayerOnline.Shared
         {
             var currentTime = Player.GetCurrentTime();
             storyboardUpdater.Update(currentTime);
+            //Console.WriteLine($"current time : {currentTime} , obj: {storyboardUpdater.UpdatingStoryboardObjects.Count}");
         }
 
         private void OnRender()

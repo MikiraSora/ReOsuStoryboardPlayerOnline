@@ -74,24 +74,28 @@ namespace ReOsuStoryboardPlayerOnline.Render
 
         private static float[] vpBuffer = new float[16];
 
-        public static unsafe void BeforeDraw(WebGLContext gl)
+        public static async Task BeforeDraw(WebGLContext gl)
         {
-            shader.UseProgramAsync(gl);
+            await shader.UseProgramAsync(gl);
 
             var VP = CameraViewMatrix * ProjectionMatrix;
 
-            fixed (float* ptr = &vpBuffer[0])
+            unsafe
             {
-                Unsafe.CopyBlock(ptr, &VP.Row0.X, 16 * sizeof(float));
+                fixed (float* ptr = &vpBuffer[0])
+                {
+                    Unsafe.CopyBlock(ptr, &VP.Row0.X, 16 * sizeof(float));
+                }
             }
 
-            shader.UpdateViewProjection(gl, false, vpBuffer);
+            await shader.UpdateViewProjection(gl, false, vpBuffer);
         }
 
-        public static async void AfterDraw(WebGLContext gl)
+        public static async Task AfterDraw(WebGLContext gl)
         {
             var error = await gl.GetErrorAsync();
-            Debug.Assert(error == Error.NO_ERROR,"DEBUG : OpenGL got error after rendering. ERROR = " + error);
+            Console.WriteLine($"gl.GetErrorAsync : {error}");
+            //Debug.Assert(error == Error.NO_ERROR,"DEBUG : OpenGL got error after rendering. ERROR = " + error);
         }
 
         public static async void ApplyRenderResource(WebGLContext gl,Dictionary<string, TextureResource> textureResourceMap)
@@ -103,23 +107,23 @@ namespace ReOsuStoryboardPlayerOnline.Render
             RenderKernel.textureResourceMap = textureResourceMap;
         }
 
-        public static void Render(WebGLContext gl, List<StoryboardObject> updatingStoryboardObjects)
+        public static async Task Render(WebGLContext gl, List<StoryboardObject> updatingStoryboardObjects)
         {
             if (!init)
                 return;
 
-            BeforeDraw(gl);
+            await BeforeDraw(gl);
 
             foreach (var obj in updatingStoryboardObjects)
             {
                 if (!obj.IsVisible)
                     continue;
 
-                DrawObject(gl,obj);
+                await DrawObject(gl,obj);
             }
 
             ChangeAdditiveStatus(gl,false);
-            AfterDraw(gl);
+            await AfterDraw(gl);
         }
 
         private static async void ChangeAdditiveStatus(WebGLContext gl,bool isAdditiveBlend)
@@ -132,7 +136,7 @@ namespace ReOsuStoryboardPlayerOnline.Render
 
         private static float[] martrix3Buffer = new float[3 * 3];
 
-        public static async void DrawObject(WebGLContext gl, StoryboardObject obj)
+        public static async Task DrawObject(WebGLContext gl, StoryboardObject obj)
         {
             if (!textureResourceMap.TryGetValue(obj.ImageFilePath, out var textureResource))
                 return;
@@ -148,11 +152,11 @@ namespace ReOsuStoryboardPlayerOnline.Render
             float scalex = is_xflip * obj.Scale.X * textureResource.Size.Width;
             float scaley = is_yflip * obj.Scale.Y * textureResource.Size.Height;
 
-            shader.UpdateColor(gl, obj.Color.X, obj.Color.Y, obj.Color.Z, obj.Color.W);
-            shader.UpdateFlip(gl, horizon_flip ? -1 : 1, vertical_flip ? -1 : 1);
+            await shader.UpdateColor(gl, obj.Color.X, obj.Color.Y, obj.Color.Z, obj.Color.W);
+            await shader.UpdateFlip(gl, horizon_flip ? -1 : 1, vertical_flip ? -1 : 1);
 
             //anchor
-            shader.UpdateAnchor(gl, obj.OriginOffset.X, obj.OriginOffset.Y);
+            await shader.UpdateAnchor(gl, obj.OriginOffset.X, obj.OriginOffset.Y);
 
             //Create ModelMatrix
             Matrix3 model = Matrix3.Zero;
@@ -174,9 +178,9 @@ namespace ReOsuStoryboardPlayerOnline.Render
                 }
             }
 
-            shader.UpdateModel(gl, false, martrix3Buffer);
+            await shader.UpdateModel(gl, false, martrix3Buffer);
 
-            shader.UpdateTexture(gl, textureResource.Texture);
+            await shader.UpdateTexture(gl, textureResource.Texture);
             await gl.DrawArraysAsync(Primitive.TRIANGLE_FAN, 0, 4);
         }
     }

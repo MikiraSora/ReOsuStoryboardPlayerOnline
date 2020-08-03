@@ -113,27 +113,24 @@ namespace ReOsuStoryboardPlayerOnline.Render
             return shader;
         }
 
-        public async void UseProgramAsync(WebGLContext gl)
-        {
-            await gl.UseProgramAsync(ShaderProgram);
-        }
+        public Task UseProgramAsync(WebGLContext gl) => gl.UseProgramAsync(ShaderProgram);
 
-        public async void UpdateViewProjection(WebGLContext gl,bool transpose,float[] matrixArray) => 
-            await gl.UniformMatrixAsync(ViewProjectionLocation, transpose, matrixArray);
+        public Task UpdateViewProjection(WebGLContext gl,bool transpose,float[] matrixArray) => 
+            gl.UniformMatrixAsync(ViewProjectionLocation, transpose, matrixArray);
 
-        public async void UpdateModel(WebGLContext gl, bool transpose, float[] matrixArray) =>
-            await gl.UniformMatrixAsync(ModelLocation, transpose, matrixArray);
+        public Task UpdateModel(WebGLContext gl, bool transpose, float[] matrixArray) =>
+            gl.UniformMatrixAsync(ModelLocation, transpose, matrixArray);
 
-        public async void UpdateAnchor(WebGLContext gl,params float[] matrixArray) =>
-            await gl.UniformAsync(AnchorLocation, matrixArray);
+        public Task UpdateAnchor(WebGLContext gl,params float[] matrixArray) =>
+            gl.UniformAsync(AnchorLocation, matrixArray);
 
-        public async void UpdateColor(WebGLContext gl, params float[] matrixArray) =>
-            await gl.UniformAsync(ColorLocation, matrixArray);
+        public Task UpdateColor(WebGLContext gl, params float[] matrixArray) =>
+            gl.UniformAsync(ColorLocation, matrixArray);
 
-        public async void UpdateFlip(WebGLContext gl, params float[] matrixArray) =>
-            await gl.UniformAsync(FilpLocation, matrixArray);
+        public Task UpdateFlip(WebGLContext gl, params float[] matrixArray) =>
+            gl.UniformAsync(FilpLocation, matrixArray);
 
-        public async void UpdateTexture(WebGLContext gl, WebGLTexture texture) =>
-            await gl.BindTextureAsync(TextureType.TEXTURE_2D, texture);
+        public Task UpdateTexture(WebGLContext gl, WebGLTexture texture) =>
+            gl.BindTextureAsync(TextureType.TEXTURE_2D, texture);
     }
 }
